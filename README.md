@@ -1,2 +1,2 @@
 # fgrep
-Am experimental fast grep utility
+An experimental fast grep utility
