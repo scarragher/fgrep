@@ -19,12 +19,14 @@ type Worker struct {
 }
 
 //DoWork starts a worker, changing the status, logging the time started/finished
-func (worker *Worker) DoWork() {
+func (worker *Worker) DoWork(callback func()) {
 
 	worker.Status = StatusWorking
 
 	worker.WorkFunc()
 
 	worker.Status = StatusIdle
+
+	callback()
 
 }
