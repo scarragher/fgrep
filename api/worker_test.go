@@ -11,7 +11,7 @@ func TestDoWork(t *testing.T) {
 		}
 	}
 
-	worker.DoWork()
+	worker.DoWork(func() {})
 
 	if worker.Status != StatusIdle {
 		t.Errorf("Expected status %s when finished, got %s", StatusIdle, worker.Status)
