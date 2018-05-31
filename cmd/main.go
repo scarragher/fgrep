@@ -86,13 +86,13 @@ func search(directory string, criteria string, who string) {
 				mutex.Unlock()
 
 				worker.WorkFunc = func() {
-
 					search(filepath, criteria, fmt.Sprintf("Worker[%d]", worker.ID))
 				}
 
 				log(fmt.Sprintf("[%s]: Offloading work for '%s' to worker %d\n", who, filepath, worker.ID))
 
 				go worker.DoWork(func() {
+					log(fmt.Sprintf("Worker[%d]: Finished\n", worker.ID))
 					enqueueWorker(worker)
 					mutex.Lock()
 					waitGroup.Done()
@@ -103,7 +103,7 @@ func search(directory string, criteria string, who string) {
 			} else {
 				search(filepath, criteria, who)
 			}
-
+			continue
 		}
 
 		mutex.Lock()
@@ -111,10 +111,13 @@ func search(directory string, criteria string, who string) {
 		mutex.Unlock()
 
 		if strings.Contains(file.Name(), criteria) {
-			fmt.Printf("Found %s, %s\n", file.Name(), who)
+			log(fmt.Sprintf("Found %s/%s, %s\n", directory, file.Name(), who))
 		}
 	}
 
+	if who == "main" {
+		log("[Main] finished")
+	}
 	return
 }
 
