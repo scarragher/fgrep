@@ -13,18 +13,18 @@ import (
 )
 
 var (
-	workerQueue    fgrep.WorkerQueue
-	waitGroup      sync.WaitGroup
-	mutex          sync.Mutex
-	loggingEnabled *bool
-	fileCount      int
+	workerQueue   fgrep.WorkerQueue
+	waitGroup     sync.WaitGroup
+	mutex         sync.Mutex
+	verboseOutput *bool
+	fileCount     int
 )
 
 func main() {
 
 	inputDirectory := flag.String("i", "", "The directory to search")
-	searchCriteria := flag.String("s", "", "The string to search for")
-	loggingEnabled = flag.Bool("l", false, "enable logging")
+	fileName := flag.String("f", "", "The filename to search for")
+	verboseOutput = flag.Bool("v", false, "verbose output")
 
 	flag.Parse()
 
@@ -33,16 +33,16 @@ func main() {
 		return
 	}
 
-	if *searchCriteria == "" {
+	if *fileName == "" {
 		fmt.Println("No search criteria specified")
 		return
 	}
 
-	fmt.Printf("Searching %s for '%s'\n", *inputDirectory, *searchCriteria)
+	fmt.Printf("Searching %s for '%s'\n", *inputDirectory, *fileName)
 	startTime := time.Now()
 
 	initWorkers(4)
-	search(*inputDirectory, *searchCriteria, "main")
+	search(*inputDirectory, *fileName, "", "main")
 
 	waitGroup.Wait()
 	timeTaken := time.Since(startTime)
@@ -66,7 +66,7 @@ func initWorkers(maxWorkers int) {
 
 }
 
-func search(directory string, criteria string, who string) {
+func search(directory string, filename string, content string, who string) {
 
 	logf("[%s]: scanning '%s'\n", who, directory)
 	files, err := ioutil.ReadDir(directory)
@@ -86,34 +86,30 @@ func search(directory string, criteria string, who string) {
 				mutex.Unlock()
 
 				worker.WorkFunc = func() {
-					search(filepath, criteria, fmt.Sprintf("Worker[%d]", worker.ID))
+					search(filepath, filename, content, fmt.Sprintf("Worker[%d]", worker.ID))
 				}
 
 				logf("[%s]: Offloading work for '%s' to worker %d\n", who, filepath, worker.ID)
 
 				go worker.DoWork(func() {
-					log(fmt.Sprintf("Worker[%d]: Finished\n", worker.ID))
 					enqueueWorker(worker)
 					exclusive(func() { waitGroup.Done() })
 				})
 
 				continue
 			} else {
-				search(filepath, criteria, who)
+				search(filepath, filename, content, who)
 			}
 			continue
 		}
 
 		exclusive(func() { fileCount++ })
 
-		if strings.Contains(file.Name(), criteria) {
+		if strings.Contains(file.Name(), filename) {
 			log(fmt.Sprintf("Found %s/%s, %s\n", directory, file.Name(), who))
 		}
 	}
 
-	if who == "main" {
-		log("[Main] finished")
-	}
 	return
 }
 
@@ -123,7 +119,7 @@ func logf(format string, values ...interface{}) {
 }
 
 func log(text string) {
-	if !*loggingEnabled {
+	if !*verboseOutput {
 		return
 	}
 
