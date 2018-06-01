@@ -68,11 +68,11 @@ func initWorkers(maxWorkers int) {
 
 func search(directory string, filename string, content string, who string) {
 
-	logf("[%s]: scanning '%s'\n", who, directory)
+	log(fmt.Sprintf("[%s]: scanning '%s'\n", who, directory))
 	files, err := ioutil.ReadDir(directory)
 
 	if err != nil {
-		logf("Error scanning '%s': %s", directory, err.Error())
+		log(fmt.Sprintf("Error scanning '%s': %s", directory, err.Error()))
 		return
 	}
 
@@ -89,7 +89,7 @@ func search(directory string, filename string, content string, who string) {
 					search(filepath, filename, content, fmt.Sprintf("Worker[%d]", worker.ID))
 				}
 
-				logf("[%s]: Offloading work for '%s' to worker %d\n", who, filepath, worker.ID)
+				log(fmt.Sprintf("[%s]: Offloading work for '%s' to worker %d\n", who, filepath, worker.ID))
 
 				go worker.DoWork(func() {
 					enqueueWorker(worker)
@@ -103,19 +103,16 @@ func search(directory string, filename string, content string, who string) {
 			continue
 		}
 
-		exclusive(func() { fileCount++ })
+		mutex.Lock()
+		fileCount++
+		mutex.Unlock()
 
 		if strings.Contains(file.Name(), filename) {
-			log(fmt.Sprintf("Found %s/%s, %s\n", directory, file.Name(), who))
+			fmt.Printf("Found %s/%s, %s\n", directory, file.Name(), who)
 		}
 	}
 
 	return
-}
-
-func logf(format string, values ...interface{}) {
-	output := fmt.Sprintf(format, values)
-	log(output)
 }
 
 func log(text string) {
