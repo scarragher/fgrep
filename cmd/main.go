@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	fgrep "github.com/scarragher/fgrep/api"
@@ -17,7 +18,7 @@ var (
 	waitGroup     sync.WaitGroup
 	mutex         sync.Mutex
 	verboseOutput *bool
-	fileCount     int
+	fileCount     int32
 )
 
 func main() {
@@ -38,16 +39,18 @@ func main() {
 		return
 	}
 
-	fmt.Printf("Searching %s for '%s'\n", *inputDirectory, *fileName)
-	startTime := time.Now()
+	fmt.Printf("Searching %s for files like '%s'\n", *inputDirectory, *fileName)
 
 	initWorkers(4)
+
+	startTime := time.Now()
+
 	search(*inputDirectory, *fileName, "", "main")
 
 	waitGroup.Wait()
 	timeTaken := time.Since(startTime)
 
-	fmt.Printf("Searched %d files in %f seconds", fileCount, timeTaken.Seconds())
+	fmt.Printf("Searched %d files in %f seconds\n", fileCount, timeTaken.Seconds())
 }
 
 func initWorkers(maxWorkers int) {
@@ -69,6 +72,7 @@ func initWorkers(maxWorkers int) {
 func search(directory string, filename string, content string, who string) {
 
 	log(fmt.Sprintf("[%s]: scanning '%s'\n", who, directory))
+
 	files, err := ioutil.ReadDir(directory)
 
 	if err != nil {
@@ -79,7 +83,11 @@ func search(directory string, filename string, content string, who string) {
 	for _, file := range files {
 		if file.IsDir() {
 			filepath := path.Join(directory, file.Name())
+
+			mutex.Lock()
 			worker, ok := workerQueue.Dequeue()
+			mutex.Unlock()
+
 			if ok {
 				mutex.Lock()
 				waitGroup.Add(1)
@@ -92,8 +100,11 @@ func search(directory string, filename string, content string, who string) {
 				log(fmt.Sprintf("[%s]: Offloading work for '%s' to worker %d\n", who, filepath, worker.ID))
 
 				go worker.DoWork(func() {
+					mutex.Lock()
 					enqueueWorker(worker)
-					exclusive(func() { waitGroup.Done() })
+
+					waitGroup.Done()
+					mutex.Unlock()
 				})
 
 				continue
@@ -103,9 +114,9 @@ func search(directory string, filename string, content string, who string) {
 			continue
 		}
 
-		mutex.Lock()
-		fileCount++
-		mutex.Unlock()
+		atomic.AddInt32(&fileCount, 1)
+
+		log(fmt.Sprintf("Scanning %s %s\n", directory, file.Name()))
 
 		if strings.Contains(file.Name(), filename) {
 			fmt.Printf("Found %s/%s, %s\n", directory, file.Name(), who)
@@ -125,10 +136,4 @@ func log(text string) {
 
 func enqueueWorker(worker *fgrep.Worker) {
 	workerQueue.Enqueue(worker)
-}
-
-func exclusive(f func()) {
-	mutex.Lock()
-	f()
-	mutex.Unlock()
 }
