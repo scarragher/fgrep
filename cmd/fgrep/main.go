@@ -26,16 +26,17 @@ func main() {
 	inputDirectory := flag.String("i", "", "The directory to search")
 	fileName := flag.String("f", "", "The filename to search for")
 	verboseOutput = flag.Bool("v", false, "verbose output")
+	content := flag.String("c", "", "the content to search for within files")
 
 	flag.Parse()
 
 	if *inputDirectory == "" {
-		fmt.Println("No directory specified")
+		flag.PrintDefaults()
 		return
 	}
 
-	if *fileName == "" {
-		fmt.Println("No search criteria specified")
+	if *fileName == "" && *content == "" {
+		fmt.Println("No search criteria specified, specify either -f <filename> or -c <content>")
 		return
 	}
 
