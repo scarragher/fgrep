@@ -85,9 +85,7 @@ func search(directory string, filename string, content string, who string) {
 		if file.IsDir() {
 			filepath := path.Join(directory, file.Name())
 
-			mutex.Lock()
 			worker, ok := workerQueue.Dequeue()
-			mutex.Unlock()
 
 			if ok {
 				mutex.Lock()
@@ -101,11 +99,8 @@ func search(directory string, filename string, content string, who string) {
 				log(fmt.Sprintf("[%s]: Offloading work for '%s' to worker %d\n", who, filepath, worker.ID))
 
 				go worker.DoWork(func() {
-					mutex.Lock()
 					enqueueWorker(worker)
-
 					waitGroup.Done()
-					mutex.Unlock()
 				})
 
 				continue
