@@ -18,8 +18,11 @@ type Worker struct {
 	WorkFunc func()
 }
 
+// WorkCompleteFunc executes when a worker has finished working
+type WorkCompleteFunc func()
+
 //DoWork starts a worker, changing the status, logging the time started/finished
-func (worker *Worker) DoWork(callback func()) {
+func (worker *Worker) DoWork(onComplete WorkCompleteFunc) {
 
 	worker.Status = StatusWorking
 
@@ -27,6 +30,6 @@ func (worker *Worker) DoWork(callback func()) {
 
 	worker.Status = StatusIdle
 
-	callback()
+	onComplete()
 
 }

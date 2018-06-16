@@ -96,6 +96,7 @@ func search(directory string, filename string, content string, who string) {
 			worker, ok := workerQueue.Dequeue()
 
 			if ok {
+				// a worker is available - send it to work
 				mutex.Lock()
 				waitGroup.Add(1)
 				mutex.Unlock()
@@ -104,16 +105,19 @@ func search(directory string, filename string, content string, who string) {
 					search(filepath, filename, content, fmt.Sprintf("Worker[%d]", worker.ID))
 				}
 
-				log(fmt.Sprintf("[%s]: Offloading work for '%s' to worker %d\n", who, filepath, worker.ID))
-
-				go worker.DoWork(func() {
+				workCompleteFunc := func() {
 					log(fmt.Sprintf("Worker %s finished\n", who))
 					enqueueWorker(worker)
 					waitGroup.Done()
-				})
+				}
+
+				log(fmt.Sprintf("[%s]: Offloading work for '%s' to worker %d\n", who, filepath, worker.ID))
+
+				go worker.DoWork(workCompleteFunc)
 
 				continue
 			} else {
+				// no worker available, handle this synchronously
 				search(filepath, filename, content, who)
 			}
 			continue
@@ -124,6 +128,8 @@ func search(directory string, filename string, content string, who string) {
 		if filename != "" {
 			if strings.Contains(file.Name(), filename) {
 				fmt.Printf("Found %s/%s, %s\n", directory, file.Name(), who)
+			} else {
+				continue
 			}
 		}
 

@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-// extensions that won't be searched
 var (
 	validContentTypes = []string{"text/"}
 )
