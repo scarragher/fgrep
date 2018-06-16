@@ -26,7 +26,7 @@ func (t *TextScanner) Scan(fileContents []byte, searchContent string) (match boo
 
 	for _, s := range segments {
 
-		if strings.Contains(strings.ToLower(s), searchContent) {
+		if strings.Contains(strings.ToLower(s), strings.ToLower(searchContent)) {
 			return true, true
 		}
 	}
