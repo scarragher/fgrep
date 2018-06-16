@@ -15,8 +15,10 @@ type WorkerQueue struct {
 
 //Dequeue dequeues a worker, returning a pointer to the worker a bool to indicate success
 func (wq *WorkerQueue) Dequeue() (*Worker, bool) {
-
 	wq.Lock()
+
+	defer wq.Unlock()
+
 	if len(wq.workers) < 1 {
 		return nil, false
 	}
@@ -24,7 +26,6 @@ func (wq *WorkerQueue) Dequeue() (*Worker, bool) {
 	worker := wq.workers[0]
 	wq.workers = wq.workers[1:]
 
-	wq.Unlock()
 	return worker, true
 }
 
