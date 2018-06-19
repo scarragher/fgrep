@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -89,7 +90,7 @@ func search(directory string, filename string, content string, who string) {
 	}
 
 	for _, file := range files {
-		filepath := path.Join(directory, file.Name())
+		fp := path.Join(directory, file.Name())
 
 		if file.IsDir() {
 
@@ -102,7 +103,7 @@ func search(directory string, filename string, content string, who string) {
 				mutex.Unlock()
 
 				worker.WorkFunc = func() {
-					search(filepath, filename, content, fmt.Sprintf("Worker[%d]", worker.ID))
+					search(fp, filename, content, fmt.Sprintf("Worker[%d]", worker.ID))
 				}
 
 				workCompleteFunc := func() {
@@ -111,14 +112,14 @@ func search(directory string, filename string, content string, who string) {
 					waitGroup.Done()
 				}
 
-				log(fmt.Sprintf("[%s]: Offloading work for '%s' to worker %d\n", who, filepath, worker.ID))
+				log(fmt.Sprintf("[%s]: Offloading work for '%s' to worker %d\n", who, fp, worker.ID))
 
 				go worker.DoWork(workCompleteFunc)
 
 				continue
 			} else {
 				// no worker available, handle this synchronously
-				search(filepath, filename, content, who)
+				search(fp, filename, content, who)
 			}
 			continue
 		}
@@ -127,7 +128,7 @@ func search(directory string, filename string, content string, who string) {
 
 		if filename != "" {
 			if strings.Contains(file.Name(), filename) {
-				fmt.Printf("Found %s/%s, %s\n", directory, file.Name(), who)
+				fmt.Printf("%s/%s, %s\n", directory, file.Name(), who)
 			} else {
 				continue
 			}
@@ -139,17 +140,17 @@ func search(directory string, filename string, content string, who string) {
 			fileSize := file.Size()
 
 			if (fileSize / 1024) > *maxFileSize {
-				log(fmt.Sprintf("Skipped file %s, size was %d which is greater than max: %d\n", filepath, fileSize, *maxFileSize))
+				log(fmt.Sprintf("Skipped file %s, size was %d which is greater than max: %d\n", fp, fileSize, *maxFileSize))
 				atomic.AddInt32(&skipped, 1)
 				continue
 			}
 			if fileSize < contentSize {
-				log(fmt.Sprintf("Skipped file %s, size was %d, wanted > %d\n", filepath, fileSize, contentSize))
+				log(fmt.Sprintf("Skipped file %s, size was %d, wanted > %d\n", fp, fileSize, contentSize))
 				atomic.AddInt32(&skipped, 1)
 				continue
 			}
 
-			fileData, err := os.Open(filepath)
+			fileData, err := os.Open(fp)
 			if err != nil {
 				log(fmt.Sprintf("Failed to open %s. Error: %v", filename, err))
 				continue
@@ -170,7 +171,7 @@ func search(directory string, filename string, content string, who string) {
 				continue
 			}
 			if found {
-				fmt.Printf("Found content in %s\\%s\n", directory, file.Name())
+				fmt.Println(filepath.Join(directory, file.Name()))
 				atomic.AddInt32(&matches, 1)
 			}
 		}
