@@ -8,6 +8,7 @@ import (
 //WorkerQueue holds a queue of Workers and provides functionality to enqueue/dequeue a Worker
 type WorkerQueue struct {
 	sync.Mutex
+
 	Max int
 
 	workers []*Worker
