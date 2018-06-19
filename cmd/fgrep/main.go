@@ -128,7 +128,7 @@ func search(directory string, filename string, content string, who string) {
 
 		if filename != "" {
 			if strings.Contains(file.Name(), filename) {
-				fmt.Printf("%s/%s, %s\n", directory, file.Name(), who)
+				fmt.Println(filepath.Join(directory, file.Name()))
 			} else {
 				continue
 			}

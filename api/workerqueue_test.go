@@ -59,7 +59,7 @@ func TestDequeue(t *testing.T) {
 	}
 
 	if w2 != &worker2 {
-		t.Error("Expected worker %p, got %p", &worker2, &w2)
+		t.Errorf("Expected worker %p, got %p", &worker2, &w2)
 	}
 
 	if len(wq.workers) != 0 {
