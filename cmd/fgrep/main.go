@@ -37,17 +37,12 @@ func main() {
 
 	flag.Parse()
 
-	if *inputDirectory == "" {
+	if *inputDirectory == "" || (*fileName == "" && *content == "") {
 		flag.PrintDefaults()
 		return
 	}
 
-	if *fileName == "" && *content == "" {
-		fmt.Println("No search criteria specified, specify either -f <filename> or -c <content>")
-		return
-	}
-
-	fmt.Printf("Searching %s for filenames like '%s' with content '%s' less than or equal to %dKB.\n", *inputDirectory, *fileName, *content, *maxFileSize)
+	log(fmt.Sprintf("Searching %s for filenames like '%s' with content '%s' less than or equal to %dKB.\n", *inputDirectory, *fileName, *content, *maxFileSize))
 
 	initWorkers(*workers)
 
@@ -59,7 +54,7 @@ func main() {
 
 	timeTaken := time.Since(startTime)
 
-	fmt.Printf("Searched %d/%d files, skipped %d files. Found %d matches in %f seconds", (fileCount - skipped), fileCount, skipped, matches, timeTaken.Seconds())
+	log(fmt.Sprintf("Searched %d/%d files, skipped %d files. Found %d matches in %f seconds", (fileCount - skipped), fileCount, skipped, matches, timeTaken.Seconds()))
 }
 
 func initWorkers(maxWorkers int) {
