@@ -37,9 +37,15 @@ func main() {
 
 	flag.Parse()
 
-	if *inputDirectory == "" || (*fileName == "" && *content == "") {
+	if *fileName == "" && *content == "" {
 		flag.PrintDefaults()
 		return
+	}
+
+	if *inputDirectory == "" {
+		cd := filepath.Dir(os.Args[0])
+		log(fmt.Sprintf("Defaulting directory to %s\n", cd))
+		*inputDirectory = cd
 	}
 
 	log(fmt.Sprintf("Searching %s for filenames like '%s' with content '%s' less than or equal to %dKB.\n", *inputDirectory, *fileName, *content, *maxFileSize))
