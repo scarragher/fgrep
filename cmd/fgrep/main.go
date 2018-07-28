@@ -27,7 +27,7 @@ var (
 )
 
 const (
-	maxFilesPerWorker = 50
+	maxFilesPerWorker = 45
 )
 
 func main() {
@@ -93,13 +93,14 @@ func initWorkers(maxWorkers int) {
 func search(directory string, files []os.FileInfo, filename string, content string, who string) {
 
 	fileLen := len(files)
+	halfFileLen := (fileLen / 2)
 	anchor := fileLen
 
-	if fileLen > maxFilesPerWorker {
+	if halfFileLen > maxFilesPerWorker {
 		// try to get a free worker and have it pick up half the work
 		childWorker, ok := workerQueue.Dequeue()
 		if ok {
-			anchor = (fileLen / 2)
+			anchor = halfFileLen
 			workerFiles := files[anchor:]
 
 			log("%s contains %d files, %d-%d will be processed by Worker[%d]", directory, fileLen, anchor, fileLen, childWorker.ID)
