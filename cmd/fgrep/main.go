@@ -48,7 +48,7 @@ func main() {
 		*inputDirectory = cd
 	}
 
-	log(fmt.Sprintf("Searching %s for filenames like '%s' with content '%s' less than or equal to %dKB.\n", *inputDirectory, *fileName, *content, *maxFileSize))
+	log("Searching %s for filenames like '%s' with content '%s' less than or equal to %dKB.\n", *inputDirectory, *fileName, *content, *maxFileSize)
 
 	initWorkers(*workers)
 
@@ -60,7 +60,7 @@ func main() {
 
 	timeTaken := time.Since(startTime)
 
-	log(fmt.Sprintf("Searched %d/%d files, skipped %d files. Found %d matches in %f seconds", (fileCount - skipped), fileCount, skipped, matches, timeTaken.Seconds()))
+	log("Searched %d/%d files, skipped %d files. Found %d matches in %f seconds", (fileCount - skipped), fileCount, skipped, matches, timeTaken.Seconds())
 }
 
 func initWorkers(maxWorkers int) {
@@ -81,12 +81,12 @@ func initWorkers(maxWorkers int) {
 
 func search(directory string, filename string, content string, who string) {
 
-	log(fmt.Sprintf("\t[%s]: scanning '%s'\n", who, directory))
+	log("\t[%s]: scanning '%s'\n", who, directory)
 
 	files, err := ioutil.ReadDir(directory)
 
 	if err != nil {
-		log(fmt.Sprintf("Error scanning '%s': %s", directory, err.Error()))
+		log("Error scanning '%s': %s", directory, err.Error())
 		return
 	}
 
@@ -108,12 +108,12 @@ func search(directory string, filename string, content string, who string) {
 				}
 
 				workCompleteFunc := func() {
-					log(fmt.Sprintf("Worker %s finished\n", who))
+					log("Worker %s finished\n", who)
 					enqueueWorker(worker)
 					waitGroup.Done()
 				}
 
-				log(fmt.Sprintf("[%s]: Offloading work for '%s' to worker %d\n", who, fp, worker.ID))
+				log("[%s]: Offloading work for '%s' to worker %d\n", who, fp, worker.ID)
 
 				go worker.DoWork(workCompleteFunc)
 
@@ -141,33 +141,33 @@ func search(directory string, filename string, content string, who string) {
 			fileSize := file.Size()
 
 			if (fileSize / 1024) > *maxFileSize {
-				log(fmt.Sprintf("Skipped file %s, size was %d which is greater than max: %d\n", fp, fileSize, *maxFileSize))
+				log("Skipped file %s, size was %d which is greater than max: %d\n", fp, fileSize, *maxFileSize)
 				atomic.AddInt32(&skipped, 1)
 				continue
 			}
 			if fileSize < contentSize {
-				log(fmt.Sprintf("Skipped file %s, size was %d, wanted > %d\n", fp, fileSize, contentSize))
+				log("Skipped file %s, size was %d, wanted > %d\n", fp, fileSize, contentSize)
 				atomic.AddInt32(&skipped, 1)
 				continue
 			}
 
 			fileData, err := os.Open(fp)
 			if err != nil {
-				log(fmt.Sprintf("Failed to open %s. Error: %v", filename, err))
+				log("Failed to open %s. Error: %v", filename, err)
 				continue
 			}
 			defer fileData.Close()
 
 			fileContent, err := ioutil.ReadAll(fileData)
 			if err != nil {
-				log(fmt.Sprintf("Failed to read %s. Error: %v", filename, err))
+				log("Failed to read %s. Error: %v", filename, err)
 				continue
 			}
 
 			found, ok := fgrep.Scan(content, path.Ext(filename), fileContent)
 
 			if !ok {
-				log(fmt.Sprintf("skipped %s", filename))
+				log("skipped %s", filename)
 				atomic.AddInt32(&skipped, 1)
 				continue
 			}
@@ -181,12 +181,12 @@ func search(directory string, filename string, content string, who string) {
 	return
 }
 
-func log(text string) {
+func log(text string, values ...interface{}) {
 	if !*verboseOutput {
 		return
 	}
 
-	fmt.Print(text)
+	fmt.Printf(text+"\n", values...)
 }
 
 func enqueueWorker(worker *fgrep.Worker) {
