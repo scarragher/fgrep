@@ -44,11 +44,11 @@ func main() {
 
 	if *inputDirectory == "" {
 		cd := filepath.Dir(os.Args[0])
-		log(fmt.Sprintf("Defaulting directory to %s\n", cd))
+		log("Defaulting directory to %s", cd)
 		*inputDirectory = cd
 	}
 
-	log("Searching %s for filenames like '%s' with content '%s' less than or equal to %dKB.\n", *inputDirectory, *fileName, *content, *maxFileSize)
+	log("Searching %s for filenames like '%s' with content '%s' less than or equal to %dKB.", *inputDirectory, *fileName, *content, *maxFileSize)
 
 	initWorkers(*workers)
 
@@ -81,7 +81,7 @@ func initWorkers(maxWorkers int) {
 
 func search(directory string, filename string, content string, who string) {
 
-	log("\t[%s]: scanning '%s'\n", who, directory)
+	log("\t[%s]: scanning '%s'", who, directory)
 
 	files, err := ioutil.ReadDir(directory)
 
@@ -113,7 +113,7 @@ func search(directory string, filename string, content string, who string) {
 					waitGroup.Done()
 				}
 
-				log("[%s]: Offloading work for '%s' to worker %d\n", who, fp, worker.ID)
+				log("[%s]: Offloading work for '%s' to worker %d", who, fp, worker.ID)
 
 				go worker.DoWork(workCompleteFunc)
 
@@ -141,12 +141,12 @@ func search(directory string, filename string, content string, who string) {
 			fileSize := file.Size()
 
 			if (fileSize / 1024) > *maxFileSize {
-				log("Skipped file %s, size was %d which is greater than max: %d\n", fp, fileSize, *maxFileSize)
+				log("Skipped file %s, size was %d which is greater than max: %d", fp, fileSize, *maxFileSize)
 				atomic.AddInt32(&skipped, 1)
 				continue
 			}
 			if fileSize < contentSize {
-				log("Skipped file %s, size was %d, wanted > %d\n", fp, fileSize, contentSize)
+				log("Skipped file %s, size was %d, wanted > %d", fp, fileSize, contentSize)
 				atomic.AddInt32(&skipped, 1)
 				continue
 			}
