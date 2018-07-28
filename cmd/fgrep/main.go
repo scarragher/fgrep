@@ -26,6 +26,10 @@ var (
 	maxFileSize   *int64
 )
 
+const (
+	maxFilesPerWorker = 50
+)
+
 func main() {
 
 	inputDirectory := flag.String("i", "", "The directory to search")
@@ -54,7 +58,14 @@ func main() {
 
 	startTime := time.Now()
 
-	search(*inputDirectory, *fileName, *content, "main")
+	files, err := ioutil.ReadDir(*inputDirectory)
+
+	if err != nil {
+		fmt.Printf("Failed to read directory %s, %v", *inputDirectory, err.Error())
+		return
+	}
+
+	search(*inputDirectory, files, *fileName, *content, "main")
 
 	waitGroup.Wait()
 
@@ -79,57 +90,68 @@ func initWorkers(maxWorkers int) {
 
 }
 
-func search(directory string, filename string, content string, who string) {
+func search(directory string, files []os.FileInfo, filename string, content string, who string) {
 
-	log("\t[%s]: scanning '%s'", who, directory)
+	fileLen := len(files)
+	anchor := fileLen
 
-	files, err := ioutil.ReadDir(directory)
+	if fileLen > maxFilesPerWorker {
+		// try to get a free worker and have it pick up half the work
+		childWorker, ok := workerQueue.Dequeue()
+		if ok {
+			anchor = (fileLen / 2)
+			workerFiles := files[anchor:]
 
-	if err != nil {
-		log("Error scanning '%s': %s", directory, err.Error())
-		return
+			log("%s contains %d files, %d-%d will be processed by Worker[%d]", directory, fileLen, anchor, fileLen, childWorker.ID)
+
+			startWorker(childWorker,
+				func() {
+					search(directory, workerFiles, filename, content, fmt.Sprintf("Worker[%d]", childWorker.ID))
+				},
+			)
+		}
 	}
 
-	for _, file := range files {
-		fp := path.Join(directory, file.Name())
+	log("\t[%s]: scanning '%s' (%d-%d)", who, directory, 0, anchor)
+
+	for _, file := range files[0:anchor] {
+		fp := filepath.Join(directory, file.Name())
 
 		if file.IsDir() {
 
 			worker, ok := workerQueue.Dequeue()
+			childFilePath := filepath.Join(directory, file.Name())
+			childFiles, err := ioutil.ReadDir(childFilePath)
+
+			if err != nil {
+				log("Failed to read directory %s: %v", childFilePath, err.Error())
+				continue
+			}
 
 			if ok {
 				// a worker is available - send it to work
-				mutex.Lock()
-				waitGroup.Add(1)
-				mutex.Unlock()
-
-				worker.WorkFunc = func() {
-					search(fp, filename, content, fmt.Sprintf("Worker[%d]", worker.ID))
-				}
-
-				workCompleteFunc := func() {
-					log("Worker %s finished\n", who)
-					enqueueWorker(worker)
-					waitGroup.Done()
+				workFunc := func() {
+					search(childFilePath, childFiles, filename, content, fmt.Sprintf("Worker[%d]", worker.ID))
 				}
 
 				log("[%s]: Offloading work for '%s' to worker %d", who, fp, worker.ID)
 
-				go worker.DoWork(workCompleteFunc)
-
+				startWorker(worker, workFunc)
 				continue
 			} else {
 				// no worker available, handle this synchronously
-				search(fp, filename, content, who)
+				search(childFilePath, childFiles, filename, content, who)
 			}
 			continue
 		}
 
 		atomic.AddInt32(&fileCount, 1)
 
+		log("%s scanning file %s", who, file.Name())
+
 		if filename != "" {
 			if strings.Contains(file.Name(), filename) {
-				fmt.Println(filepath.Join(directory, file.Name()))
+				fmt.Println(fp)
 			} else {
 				continue
 			}
@@ -172,7 +194,7 @@ func search(directory string, filename string, content string, who string) {
 				continue
 			}
 			if found {
-				fmt.Println(filepath.Join(directory, file.Name()))
+				fmt.Println(fp)
 				atomic.AddInt32(&matches, 1)
 			}
 		}
@@ -187,6 +209,22 @@ func log(text string, values ...interface{}) {
 	}
 
 	fmt.Printf(text+"\n", values...)
+}
+
+func startWorker(worker *fgrep.Worker, workFunc func()) {
+	mutex.Lock()
+	waitGroup.Add(1)
+	mutex.Unlock()
+
+	worker.WorkFunc = workFunc
+	completeFunc := func() {
+		log("Worker %d finished\n", worker.ID)
+		enqueueWorker(worker)
+		waitGroup.Done()
+	}
+
+	go worker.DoWork(completeFunc)
+
 }
 
 func enqueueWorker(worker *fgrep.Worker) {
