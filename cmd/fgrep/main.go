@@ -20,6 +20,7 @@ var (
 	waitGroup     sync.WaitGroup
 	mutex         sync.Mutex
 	verboseOutput *bool
+	showContent   *bool
 	fileCount     int32
 	matches       int32
 	skipped       int32
@@ -38,6 +39,7 @@ func main() {
 	content := flag.String("c", "", "the content to search for within files")
 	workers := flag.Int("w", 4, "the amount of workers to utilise")
 	maxFileSize = flag.Int64("fs", 2000, "the maximum file size to search (KB)")
+	showContent = flag.Bool("content", false, "show the content instead of the filename")
 
 	flag.Parse()
 
@@ -187,7 +189,7 @@ func search(directory string, files []os.FileInfo, filename string, content stri
 				continue
 			}
 
-			found, ok := fgrep.Scan(content, path.Ext(filename), fileContent)
+			found, ok := fgrep.Scan(content, path.Ext(fp), fileContent, *showContent)
 
 			if !ok {
 				log("skipped %s", filename)
@@ -195,7 +197,9 @@ func search(directory string, files []os.FileInfo, filename string, content stri
 				continue
 			}
 			if found {
-				fmt.Println(fp)
+				if !*showContent {
+					fmt.Println(fp)
+				}
 				atomic.AddInt32(&matches, 1)
 			}
 		}

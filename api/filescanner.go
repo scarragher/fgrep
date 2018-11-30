@@ -1,6 +1,7 @@
 package fgrep
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -11,7 +12,7 @@ var (
 
 // FileScanner Defines a scanner that scans file contents for matches
 type FileScanner interface {
-	Scan(fileContents []byte, searchContent string) (match bool, ok bool)
+	Scan(fileContents []byte, searchContent string, printContent bool) (match bool, ok bool)
 }
 
 // TextScanner scans a plain text file
@@ -19,22 +20,49 @@ type TextScanner struct {
 }
 
 // Scan scans a paint text file for a specific string
-func (t *TextScanner) Scan(fileContents []byte, searchContent string) (match bool, ok bool) {
+func (t *TextScanner) Scan(fileContents []byte, searchContent string, printContent bool) (match bool, ok bool) {
 	plainText := string(fileContents)
 	segments := strings.Split(plainText, "\n")
 
 	for _, s := range segments {
 
 		if strings.Contains(strings.ToLower(s), strings.ToLower(searchContent)) {
-			return true, true
+			if printContent {
+				fmt.Println(s)
+			}
+
+			match = true
 		}
 	}
 
-	return false, true
+	return match, true
+}
+
+// XMLScanner scans an XML file
+type XMLScanner struct {
+}
+
+// Scan scans an XML, using node terminators to split into multiple lines for output
+func (s *XMLScanner) Scan(fileContents []byte, searchContent string, printContent bool) (match bool, ok bool) {
+	plainText := string(fileContents)
+	segments := strings.Split(plainText, ">")
+
+	for _, s := range segments {
+
+		if strings.Contains(strings.ToLower(s), strings.ToLower(searchContent)) {
+			if printContent {
+				fmt.Println(s + ">")
+			}
+
+			match = true
+		}
+	}
+
+	return match, true
 }
 
 // Scan scans a specific file's contents using the file extension to select the correct FileScanner to use
-func Scan(searchContent string, fileExt string, fileContents []byte) (match bool, ok bool) {
+func Scan(searchContent string, fileExt string, fileContents []byte, printContent bool) (match bool, ok bool) {
 
 	if len(fileContents) == 0 {
 		return false, false
@@ -51,11 +79,13 @@ func Scan(searchContent string, fileExt string, fileContents []byte) (match bool
 	switch fileExt {
 	case "txt":
 		scanner = &TextScanner{}
+	case ".xml":
+		scanner = &XMLScanner{}
 	default:
 		scanner = &TextScanner{}
 	}
 
-	match, ok = scanner.Scan(fileContents, searchContent)
+	match, ok = scanner.Scan(fileContents, searchContent, printContent)
 	return match, ok
 }
 
