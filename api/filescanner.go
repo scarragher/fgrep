@@ -79,7 +79,7 @@ func Scan(searchContent string, fileExt string, fileContents []byte, printConten
 	switch fileExt {
 	case "txt":
 		scanner = &TextScanner{}
-	case ".xml":
+	case "xml":
 		scanner = &XMLScanner{}
 	default:
 		scanner = &TextScanner{}
