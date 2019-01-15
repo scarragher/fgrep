@@ -189,17 +189,15 @@ func search(directory string, files []os.FileInfo, filename string, content stri
 				continue
 			}
 
-			found, ok := fgrep.Scan(content, path.Ext(fp), fileContent, *showContent)
+			found, ok := fgrep.Scan(content, path.Ext(fp)[1:], fileContent, *showContent)
 
 			if !ok {
 				log("skipped %s", filename)
 				atomic.AddInt32(&skipped, 1)
 				continue
 			}
-			if found {
-				if !*showContent {
-					fmt.Println(fp)
-				}
+			if len(found) > 0 {
+				fmt.Println(fp)				
 				atomic.AddInt32(&matches, 1)
 			}
 		}

@@ -12,7 +12,7 @@ var (
 
 // FileScanner Defines a scanner that scans file contents for matches
 type FileScanner interface {
-	Scan(fileContents []byte, searchContent string, printContent bool) (match bool, ok bool)
+	Scan(fileContents []byte, searchContent string, printContent bool) (matches []string, ok bool)
 }
 
 // TextScanner scans a plain text file
@@ -20,7 +20,7 @@ type TextScanner struct {
 }
 
 // Scan scans a paint text file for a specific string
-func (t *TextScanner) Scan(fileContents []byte, searchContent string, printContent bool) (match bool, ok bool) {
+func (t *TextScanner) Scan(fileContents []byte, searchContent string, printContent bool) (matches []string, ok bool) {
 	plainText := string(fileContents)
 	segments := strings.Split(plainText, "\n")
 
@@ -31,11 +31,11 @@ func (t *TextScanner) Scan(fileContents []byte, searchContent string, printConte
 				fmt.Println(s)
 			}
 
-			match = true
+			matches = append(matches, s)
 		}
 	}
 
-	return match, true
+	return matches, true
 }
 
 // XMLScanner scans an XML file
@@ -43,39 +43,30 @@ type XMLScanner struct {
 }
 
 // Scan scans an XML, using node terminators to split into multiple lines for output
-func (s *XMLScanner) Scan(fileContents []byte, searchContent string, printContent bool) (match bool, ok bool) {
-	plainText := string(fileContents)
-	segments := strings.Split(plainText, ">")
-
-	for _, s := range segments {
-
-		if strings.Contains(strings.ToLower(s), strings.ToLower(searchContent)) {
-			if printContent {
-				fmt.Println(s + ">")
-			}
-
-			match = true
-		}
-	}
-
-	return match, true
+func (s *XMLScanner) Scan(fileContents []byte, searchContent string, printContent bool) ([]string, bool) {
+	matches := []string{}
+	return matches, false 
+	/* 
+		decode XML document into node tree and go through the tree 
+		new scanner
+	*/
 }
 
 // Scan scans a specific file's contents using the file extension to select the correct FileScanner to use
-func Scan(searchContent string, fileExt string, fileContents []byte, printContent bool) (match bool, ok bool) {
+func Scan(searchContent string, fileExt string, fileContents []byte, printContent bool) ([]string, bool) {
+	matches := []string{}
 
 	if len(fileContents) == 0 {
-		return false, false
+		return matches, false
 	}
 
 	contentType := http.DetectContentType(fileContents)
 
 	if !validContentType(contentType) {
-		return false, false
+		return matches, false
 	}
 
 	var scanner FileScanner
-
 	switch fileExt {
 	case "txt":
 		scanner = &TextScanner{}
@@ -85,8 +76,8 @@ func Scan(searchContent string, fileExt string, fileContents []byte, printConten
 		scanner = &TextScanner{}
 	}
 
-	match, ok = scanner.Scan(fileContents, searchContent, printContent)
-	return match, ok
+	matches, ok := scanner.Scan(fileContents, searchContent, printContent)
+	return matches, ok
 }
 
 func validContentType(contentType string) bool {
