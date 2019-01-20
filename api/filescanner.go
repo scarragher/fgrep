@@ -38,20 +38,6 @@ func (t *TextScanner) Scan(fileContents []byte, searchContent string, printConte
 	return matches, true
 }
 
-// XMLScanner scans an XML file
-type XMLScanner struct {
-}
-
-// Scan scans an XML, using node terminators to split into multiple lines for output
-func (s *XMLScanner) Scan(fileContents []byte, searchContent string, printContent bool) ([]string, bool) {
-	matches := []string{}
-	return matches, false 
-	/* 
-		decode XML document into node tree and go through the tree 
-		new scanner
-	*/
-}
-
 // Scan scans a specific file's contents using the file extension to select the correct FileScanner to use
 func Scan(searchContent string, fileExt string, fileContents []byte, printContent bool) ([]string, bool) {
 	matches := []string{}
