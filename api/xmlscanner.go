@@ -1,10 +1,10 @@
 package fgrep
 
 import (
-	"bytes"
 	"encoding/xml"
 	"fmt"
 	"io"
+	"strings"
 )
 
 // XMLScanner scans an XML file
@@ -16,13 +16,18 @@ type node struct {
 	content string
 }
 
+func (n *node) String() string {
+	return fmt.Sprintf("<%s>%s</%s>", n.name, n.content, n.name)
+}
+
 // Scan scans an XML, using node terminators to split into multiple lines for output
 func (s *XMLScanner) Scan(fileContents []byte, searchContent string, printContent bool) ([]string, bool) {
 	matches := []string{}
-	reader := bytes.NewReader(fileContents)
+	raw := scrub(string(fileContents))
+	reader := strings.NewReader(raw)
 	decoder := xml.NewDecoder(reader)
+	node := node{}
 
-	fmt.Println(string(fileContents))
 	for {
 		token, err := decoder.Token()
 		if err == io.EOF {
@@ -31,27 +36,30 @@ func (s *XMLScanner) Scan(fileContents []byte, searchContent string, printConten
 			// error handling
 			return matches, false
 		}
-		nodes := []node{}
-		current := node{}
 
 		switch tok := token.(type) {
 		case xml.StartElement:
-			current.name = tok.Name.Local
-			//matchingNodes = append(matchingNodes, tok.Name.Local)
-			matches = append(matches, tok.Name.Local)
+			node.name = tok.Name.Local
 		case xml.EndElement:
-			nodes = append(nodes, current)
-			//matchingNodes = matchingNodes[:len(matchingNodes)-1]
+			s := node.String()
+			if strings.Contains(strings.ToLower(s), strings.ToLower(searchContent)) {
+				if printContent {
+					fmt.Println(s)
+				}
+
+				matches = append(matches, s)
+			}
 		case xml.CharData:
-			current.content = string(tok)
+			node.content = string(tok)
 		}
 
-		fmt.Println(nodes)
 	}
 
 	return matches, true
-	/*
-		decode XML document into node tree and go through the tree
-		new scanner
-	*/
+}
+
+func scrub(xml string) string {
+	scrubbed := strings.Replace(xml, `&lt;`, "<", -1)
+	scrubbed = strings.Replace(scrubbed, `&gt;`, ">", -1)
+	return scrubbed
 }
