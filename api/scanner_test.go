@@ -16,6 +16,7 @@ func TestScanner(t *testing.T) {
 		{"test", "trumpet", []string{"this is a test trumpet test file"}, true, []byte("this is a test trumpet test file")},
 		{"test", "trumpet", []string{"trumpet", "another trumpet"}, true, []byte("this is a test \ntrumpet\n test file\nanother trumpet")},
 		{"xml", "dinosaur", []string{"<child2>two dinosaur</child2>"}, true, []byte("<parent><child1>one</child1><child2>two dinosaur</child2></parent>")},
+		{"xml", "xmlnode:child2", []string{"<child2>two dinosaur</child2>"}, true, []byte("<parent><child1>one</child1><child2>two dinosaur</child2></parent>")},
 		{"xml", "parent", []string{"<parent><child1>one</child1><child2>two dinosaur</child2></parent>"}, true, []byte("<parent><child1>one</child1><child2>two dinosaur</child2></parent>")},
 		{"xml", "dinosaur", []string{"<child2>two dinosaur33</child2>"}, true, []byte("&lt;parent&gt;&lt;child1&gt;one&lt;/child1&gt;&lt;child2&gt;two dinosaur33&lt;/child2&gt;&lt;/parent&gt;")},
 		{"gif", "", []string{}, false, []byte(`GIF89a...`)},

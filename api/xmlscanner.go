@@ -11,6 +11,12 @@ import (
 type XMLScanner struct {
 }
 
+type Node interface{}
+type Element struct {
+	Name     string
+	Children []Node
+}
+
 type node struct {
 	name    string
 	content string
@@ -23,11 +29,19 @@ func (n *node) String() string {
 // Scan scans an XML, using node terminators to split into multiple lines for output
 func (s *XMLScanner) Scan(fileContents []byte, searchContent string, printContent bool) ([]string, bool) {
 	matches := []string{}
-	raw := scrub(string(fileContents))
-	reader := strings.NewReader(raw)
+	reader := strings.NewReader(string(fileContents))
 	decoder := xml.NewDecoder(reader)
-	node := node{}
+	decoder.Entity = map[string]string{
+		"lt":   "<",
+		"gt":   ">",
+		"amp":  "&",
+		"apos": "'",
+		"quot": `"`,
+	}
 
+	depth := 0
+
+	// xmlnode: {nodename} returns the full node and all children within
 	for {
 		token, err := decoder.Token()
 		if err == io.EOF {
@@ -36,30 +50,14 @@ func (s *XMLScanner) Scan(fileContents []byte, searchContent string, printConten
 			// error handling
 			return matches, false
 		}
-
 		switch tok := token.(type) {
 		case xml.StartElement:
-			node.name = tok.Name.Local
+			depth++
 		case xml.EndElement:
-			s := node.String()
-			if strings.Contains(strings.ToLower(s), strings.ToLower(searchContent)) {
-				if printContent {
-					fmt.Println(s)
-				}
-
-				matches = append(matches, s)
-			}
+			depth--
 		case xml.CharData:
-			node.content = string(tok)
 		}
-
 	}
 
 	return matches, true
-}
-
-func scrub(xml string) string {
-	scrubbed := strings.Replace(xml, `&lt;`, "<", -1)
-	scrubbed = strings.Replace(scrubbed, `&gt;`, ">", -1)
-	return scrubbed
 }
